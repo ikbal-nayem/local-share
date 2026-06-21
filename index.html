@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local Share</title>
+    <!-- Linked external style properties component -->
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+    <header>
+        <h1>Local Share</h1>
+        <div class="server-status"><span class="status-dot"></span> Online</div>
+    </header>
+    
+    <div class="dashboard-layout">
+        <div class="pane pane-left">
+            <div class="section-lbl">Upload File</div>
+            <div class="upload-card">
+                <input type="file" onchange="uploadFile(this.files)">
+                <div class="upload-icon">📤</div>
+                <div class="upload-lbl" id="statusMsg">Drag and drop file here<br>or click to look through files</div>
+                <div class="progress" id="progressBar"></div>
+            </div>
+        </div>
+
+        <div class="pane pane-right">
+            <!-- Header layout container including section text label and input element mapping -->
+            <div class="pane-header">
+                <div class="section-lbl">Available Files</div>
+                <input type="text" id="searchBar" class="search-bar" placeholder="Search local files..." oninput="filterFiles()">
+            </div>
+            <div class="file-list" id="fileContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables state storage layout tracker
+        let allFiles = [];
+
+        function formatBytes(bytes) {
+            if (bytes === undefined || bytes === null || isNaN(bytes)) return '';
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        async function getFileSizeFallback(filename) {
+            try {
+                const res = await fetch(`/${encodeURIComponent(filename)}`, { method: 'HEAD' });
+                const size = res.headers.get('Content-Length');
+                return size ? parseInt(size, 10) : null;
+            } catch {
+                return null;
+            }
+        }
+
+        async function loadFiles() {
+            try {
+                const res = await fetch('/api/files');
+                const data = await res.json();
+                
+                if (data.length > 0 && typeof data === 'string') {
+                    allFiles = await Promise.all(data.map(async (name) => {
+                        const size = await getFileSizeFallback(name);
+                        return { name, size };
+                    }));
+                } else {
+                    allFiles = data; // Assign straight to global data storage tracker map object configuration
+                }
+                
+                // Render content views mapping layout
+                renderFileDOMList(allFiles);
+            } catch (err) {
+                console.error("Failed to load file list.", err);
+            }
+        }
+
+        // Dedicated helper module function logic to print list elements onto UI structure
+        function renderFileDOMList(filesArray) {
+            const container = document.getElementById('fileContainer');
+            if (!container) return;
+
+            if (filesArray.length === 0) {
+                container.innerHTML = '<div class="empty">No matching files available inside storage directory folder</div>';
+                return;
+            }
+
+            container.innerHTML = filesArray.map(file => {
+                const sizeStr = file.size !== null && file.size !== undefined 
+                    ? `<span class="file-size">${formatBytes(file.size)}</span>` 
+                    : '';
+
+                return `
+                    <div class="file-item" data-name="${file.name.toLowerCase()}">
+                        <div class="file-name-wrapper">
+                            <span class="file-icon">📄</span>
+                            <span class="file-name" title="${file.name}">${file.name}</span>
+                            ${sizeStr}
+                        </div>
+                        <div class="actions-wrapper">
+                            <a class="dl-link" href="/${encodeURIComponent(file.name)}" download>⬇️</a>
+                            <button class="btn-delete" onclick="deleteFile('${encodeURIComponent(file.name)}')">❌</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // New feature method operation to execute query structural parsing filtering logic
+        function filterFiles() {
+            const query = document.getElementById('searchBar').value.toLowerCase().trim();
+            
+            if (!query) {
+                renderFileDOMList(allFiles);
+                return;
+            }
+
+            const filtered = allFiles.filter(file => file.name.toLowerCase().includes(query));
+            renderFileDOMList(filtered);
+        }
+
+        async function deleteFile(encodedName) {
+            const decodedName = decodeURIComponent(encodedName);
+            if (!confirm(`Are you sure you want to permanently delete "${decodedName}"?`)) return;
+
+            try {
+                const res = await fetch(`/api/delete?file=${encodedName}`, { method: 'DELETE' });
+                if (res.ok) {
+                    // Clear the search bar input when a file is deleted to avoid UI confusion
+                    document.getElementById('searchBar').value = '';
+                    loadFiles(); 
+                } else {
+                    alert('Error: Failed to process backend file system structural removal');
+                }
+            } catch (err) {
+                console.error("Deletion communication pipeline failed.", err);
+                alert('A network communication interface issue occurred');
+            }
+        }
+
+        function uploadFile(files) {
+            if (!files || files.length === 0) return;
+            
+            const file = files[0]; 
+
+            const msg = document.getElementById('statusMsg');
+            const progress = document.getElementById('progressBar');
+            
+            if (msg) {
+                msg.innerHTML = `Starting upload...<br><small style="color: #94a3b8;">${formatBytes(file.size)}</small>`;
+            }
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/upload', true);
+            
+            xhr.setRequestHeader('X-File-Name', encodeURIComponent(file.name));
+
+            xhr.upload.onprogress = (e) => {
+                if (e.lengthComputable && progress && msg) {
+                    const percentage = Math.round((e.loaded / e.total) * 100);
+                    progress.style.width = percentage + '%';
+                    msg.innerHTML = `Uploading: ${percentage}%<br><small style="color: #94a3b8;">${formatBytes(e.loaded)} / ${formatBytes(e.total)}</small>`;
+                }
+            };
+
+            xhr.onload = () => {
+                if (xhr.status === 200) {
+                    if (msg) msg.innerHTML = '<span style="color: #10b981; font-weight: 600;">Success!</span>';
+                    if (progress) progress.style.width = '100%';
+                    setTimeout(() => {
+                        if (progress) progress.style.width = '0%';
+                        if (msg) msg.innerHTML = 'Drag and drop file here<br>or click to look through files';
+                        // Clear filter values upon uploading item instances to show newly added records
+                        document.getElementById('searchBar').value = '';
+                        loadFiles();
+                    }, 1000);
+                } else {
+                    if (msg) msg.innerHTML = '<span style="color: #ef4444; font-weight: 600;">Error uploading file</span>';
+                }
+            };
+
+            xhr.onerror = () => {
+                if (msg) msg.innerHTML = '<span style="color: #ef4444; font-weight: 600;">Network error occurred</span>';
+            };
+
+            xhr.send(file);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadFiles();
+        });
+    </script>
+</body>
+</html>

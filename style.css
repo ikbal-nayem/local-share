@@ -1,0 +1,292 @@
+* { 
+    box-sizing: border-box; 
+    margin: 0; 
+    padding: 0; 
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+}
+
+/* Layout fills 100% viewport height and width */
+body { 
+    background: #f8fafc; 
+    color: #1e293b; 
+    height: 100vh; 
+    width: 100vw; 
+    display: flex; 
+    flex-direction: column; 
+    overflow: hidden; 
+}
+
+/* Full width header bar */
+header { 
+    background: #ffffff; 
+    border-bottom: 1px solid #e2e8f0; 
+    padding: 16px 32px; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+}
+
+h1 { 
+    font-size: 1.25rem; 
+    font-weight: 700; 
+    letter-spacing: -0.5px; 
+    color: #0f172a; 
+}
+
+.server-status { 
+    font-size: 0.875rem; 
+    color: #10b981; 
+    display: flex; 
+    align-items: center; 
+    gap: 6px; 
+    font-weight: 500; 
+}
+
+.status-dot { 
+    width: 8px; 
+    height: 8px; 
+    background: #10b981; 
+    border-radius: 50%; 
+}
+
+/* Dashboard uses full remaining screen real estate */
+.dashboard-layout { 
+    display: flex; 
+    flex: 1; 
+    min-height: 0; 
+}
+
+.pane { 
+    display: flex; 
+    flex-direction: column; 
+    padding: 32px; 
+}
+
+/* Left Pane: Static width for file upload drop zone */
+.pane-left { 
+    width: 360px; 
+    border-right: 1px solid #e2e8f0; 
+    background: #ffffff; 
+}
+
+/* Right Pane: Dynamically absorbs all remaining browser space */
+.pane-right { 
+    flex: 1; 
+    min-width: 0; 
+    background: #f8fafc; 
+}
+
+/* Header for pane containing label and search bar element layout wrappers */
+.pane-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    gap: 16px;
+}
+
+.section-lbl { 
+    font-size: 0.75rem; 
+    text-transform: uppercase; 
+    letter-spacing: 0.75px; 
+    color: #94a3b8; 
+    font-weight: 700; 
+}
+
+/* New Search Input styling system layout rules */
+.search-bar {
+    width: 240px;
+    padding: 6px 12px;
+    font-size: 0.875rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    outline: none;
+    color: #334155;
+    background: #ffffff;
+    transition: all 0.2s ease;
+}
+
+.search-bar:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Upload Area stretches to fill container */
+.upload-card { 
+    border: 2px dashed #cbd5e1; 
+    background: #fdfdfd; 
+    border-radius: 10px; 
+    flex: 1; 
+    display: flex; 
+    flex-direction: column; 
+    justify-content: center; 
+    align-items: center; 
+    cursor: pointer; 
+    position: relative; 
+    transition: all 0.2s ease; 
+}
+
+.upload-card:hover { 
+    border-color: #3b82f6; 
+    background: #f0fdf4; 
+}
+
+.upload-card input { 
+    position: absolute; 
+    width: 100%; 
+    height: 100%; 
+    opacity: 0; 
+    cursor: pointer; 
+    top: 0; 
+    left: 0; 
+}
+
+.upload-icon { 
+    font-size: 2rem; 
+    margin-bottom: 12px; 
+    color: #64748b; 
+}
+
+.upload-lbl { 
+    font-size: 0.875rem; 
+    color: #64748b; 
+    text-align: center; 
+    padding: 0 24px; 
+    line-height: 1.5; 
+}
+
+/* Scrollable layout for file inventory lists */
+.file-list { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 10px; 
+    flex: 1; 
+    overflow-y: auto; 
+    padding-right: 8px; 
+}
+
+.file-list::-webkit-scrollbar { 
+    width: 6px; 
+}
+
+.file-list::-webkit-scrollbar-thumb { 
+    background: #cbd5e1; 
+    border-radius: 3px; 
+}
+
+.file-item { 
+    display: flex; 
+    align-items: center; 
+    justify-content: space-between; 
+    background: #ffffff; 
+    border: 1px solid #e2e8f0; 
+    padding: 14px 20px; 
+    border-radius: 8px; 
+    transition: transform 0.1s; 
+}
+
+.file-item:hover { 
+    border-color: #cbd5e1; 
+}
+
+.file-name-wrapper { 
+    display: flex; 
+    align-items: center; 
+    min-width: 0; 
+    gap: 4px; 
+    flex: 1; 
+    margin-right: 16px; 
+}
+
+.file-icon { 
+    margin-right: 8px; 
+    font-size: 1.1rem; 
+    flex-shrink: 0; 
+}
+
+.file-name { 
+    font-size: 0.9rem; 
+    font-weight: 500; 
+    white-space: nowrap; 
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+    color: #334155; 
+}
+
+.file-size { 
+    font-size: 0.75rem; 
+    color: #64748b; 
+    font-weight: 400; 
+    background: #f1f5f9; 
+    padding: 2px 6px; 
+    border-radius: 4px; 
+    margin-left: 8px; 
+    flex-shrink: 0; 
+}
+
+.actions-wrapper { 
+    display: flex; 
+    align-items: center; 
+    gap: 8px; 
+    flex-shrink: 0; 
+}
+
+.dl-link { 
+    color: #3b82f6; 
+    text-decoration: none; 
+    font-size: 0.875rem; 
+    font-weight: 600; 
+    padding: 6px 12px; 
+    background: #eff6ff; 
+    border-radius: 6px; 
+    transition: all 0.2s; 
+}
+
+.dl-link:hover { 
+    background: #3b82f6; 
+    color: #ffffff; 
+}
+
+.btn-delete { 
+    background: #fef2f2; 
+    color: #ef4444; 
+    border: none; 
+    font-size: 0.875rem; 
+    font-weight: 600; 
+    padding: 6px 12px; 
+    border-radius: 6px; 
+    cursor: pointer; 
+    transition: all 0.2s; 
+}
+
+.btn-delete:hover { 
+    background: #ef4444; 
+    color: #ffffff; 
+}
+
+.empty { 
+    font-size: 0.875rem; 
+    color: #94a3b8; 
+    text-align: center; 
+    padding: 40px 0; 
+}
+
+.progress { 
+    position: absolute; 
+    bottom: 0; 
+    left: 0; 
+    height: 4px; 
+    background: #3b82f6; 
+    width: 0%; 
+    transition: width 0.1s; 
+    border-radius: 0 0 8px 8px; 
+}
+
+@media (max-width: 768px) {
+    body { height: auto; overflow: auto; }
+    .dashboard-layout { flex-direction: column; }
+    .pane-left { width: 100%; border-right: none; border-bottom: 1px solid #e2e8f0; }
+    .upload-card { height: 160px; padding: 20px 0; }
+    .pane-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .search-bar { width: 100%; }
+}

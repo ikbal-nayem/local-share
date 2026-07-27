@@ -33,20 +33,20 @@ h1 {
     color: #0f172a; 
 }
 
-.server-status { 
-    font-size: 0.875rem; 
-    color: #10b981; 
-    display: flex; 
-    align-items: center; 
-    gap: 6px; 
-    font-weight: 500; 
+/* Storage indicator sitting in the header, top right corner */
+.header-storage {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+    min-width: 150px;
 }
 
-.status-dot { 
-    width: 8px; 
-    height: 8px; 
-    background: #10b981; 
-    border-radius: 50%; 
+.storage-text {
+    font-size: 0.8rem;
+    color: #64748b;
+    font-weight: 500;
+    white-space: nowrap;
 }
 
 /* Dashboard uses full remaining screen real estate */
@@ -282,7 +282,26 @@ h1 {
     border-radius: 0 0 8px 8px; 
 }
 
+.storage-bar {
+    width: 150px;
+    height: 6px;
+    background: #f1f5f9;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.storage-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: #3b82f6;
+    border-radius: 3px;
+    transition: width 0.3s ease, background 0.3s ease;
+}
+
 @media (max-width: 768px) {
+    header { flex-wrap: wrap; gap: 8px; }
+    .header-storage { min-width: 0; }
+    .storage-bar { width: 120px; }
     body { height: auto; overflow: auto; }
     .dashboard-layout { flex-direction: column; }
     .pane-left { width: 100%; border-right: none; border-bottom: 1px solid #e2e8f0; }

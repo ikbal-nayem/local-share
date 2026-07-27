@@ -42,13 +42,13 @@
         // Global variables state storage layout tracker
         let allFiles = [];
 
-        function formatBytes(bytes) {
+        function formatBytes(bytes, decimals = 2) {
             if (bytes === undefined || bytes === null || isNaN(bytes)) return '';
             if (bytes === 0) return '0 Bytes';
             const k = 1024;
             const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
             const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(decimals)) + ' ' + sizes[i];
         }
 
         async function getFileSizeFallback(filename) {
@@ -210,7 +210,16 @@
                 fill.style.width = percentUsed + '%';
                 if (percentUsed >= 90) fill.style.background = '#ef4444';
                 else if (percentUsed >= 75) fill.style.background = '#f59e0b';
-                text.textContent = `${formatBytes(data.free)} free of ${formatBytes(data.total)}`;
+
+                // Share a single unit (e.g. GB) between free/total so the pair reads as one quick number
+                const k = 1024;
+                const sizeUnits = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+                const unitIdx = Math.min(Math.floor(Math.log(data.total) / Math.log(k)), sizeUnits.length - 1);
+                const freeInUnit = Math.round(data.free / Math.pow(k, unitIdx));
+                const totalInUnit = Math.round(data.total / Math.pow(k, unitIdx));
+
+                text.innerHTML = `<b>${freeInUnit}</b> / ${totalInUnit} ${sizeUnits[unitIdx]} free`;
+                text.title = `${formatBytes(data.free)} free of ${formatBytes(data.total)} (${percentUsed}% used)`;
             } catch (err) {
                 console.error('Failed to load storage stats.', err);
                 text.textContent = 'Unavailable';

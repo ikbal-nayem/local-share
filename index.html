@@ -218,7 +218,7 @@
                 const freeInUnit = Math.round(data.free / Math.pow(k, unitIdx));
                 const totalInUnit = Math.round(data.total / Math.pow(k, unitIdx));
 
-                text.innerHTML = `<b>${freeInUnit}</b> / ${totalInUnit} ${sizeUnits[unitIdx]} free`;
+                text.innerHTML = `<b>${freeInUnit} ${sizeUnits[unitIdx]}</b> / ${totalInUnit} ${sizeUnits[unitIdx]}`;
                 text.title = `${formatBytes(data.free)} free of ${formatBytes(data.total)} (${percentUsed}% used)`;
             } catch (err) {
                 console.error('Failed to load storage stats.', err);

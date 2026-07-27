@@ -35,6 +35,21 @@ const server = http.createServer((req, res) => {
         return;
     }
 
+    // Handle Fetching Available/Total Disk Storage (API Endpoint)
+    if (req.method === 'GET' && pathname === '/api/storage') {
+        try {
+            const stats = fs.statfsSync(rootPath);
+            const total = stats.blocks * stats.bsize;
+            const free = stats.bavail * stats.bsize;
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ total, free, used: total - free }));
+        } catch (err) {
+            console.error('Failed to read disk storage stats', err);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: 'Failed to read disk storage stats' }));
+        }
+    }
+
     // Handle Fetching Current Files with Sizes (API Endpoint)
     if (req.method === 'GET' && pathname === '/api/files') {
         const fileNames = fs.existsSync(rootPath) ? fs.readdirSync(rootPath) : [];

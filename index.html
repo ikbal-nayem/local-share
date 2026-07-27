@@ -11,7 +11,10 @@
 
     <header>
         <h1>Local Share</h1>
-        <div class="server-status"><span class="status-dot"></span> Online</div>
+        <div class="header-storage" id="storageCorner">
+            <div class="storage-text" id="storageText">Loading...</div>
+            <div class="storage-bar"><div class="storage-bar-fill" id="storageBarFill"></div></div>
+        </div>
     </header>
     
     <div class="dashboard-layout">
@@ -190,8 +193,33 @@
             xhr.send(file);
         }
 
+        async function loadStorage() {
+            const text = document.getElementById('storageText');
+            const fill = document.getElementById('storageBarFill');
+            if (!text || !fill) return;
+
+            try {
+                const res = await fetch('/api/storage');
+                const data = await res.json();
+                if (data.error || !data.total) {
+                    text.textContent = 'Unavailable';
+                    return;
+                }
+
+                const percentUsed = Math.round((data.used / data.total) * 100);
+                fill.style.width = percentUsed + '%';
+                if (percentUsed >= 90) fill.style.background = '#ef4444';
+                else if (percentUsed >= 75) fill.style.background = '#f59e0b';
+                text.textContent = `${formatBytes(data.free)} free of ${formatBytes(data.total)}`;
+            } catch (err) {
+                console.error('Failed to load storage stats.', err);
+                text.textContent = 'Unavailable';
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             loadFiles();
+            loadStorage();
         });
     </script>
 </body>

@@ -99,6 +99,46 @@ h1 {
     font-weight: 700; 
 }
 
+.pane-header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Toggle between list and grid layouts for the file inventory */
+.view-toggle {
+    display: flex;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.view-toggle-btn {
+    background: #ffffff;
+    border: none;
+    width: 34px;
+    height: 34px;
+    font-size: 1rem;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.view-toggle-btn + .view-toggle-btn {
+    border-left: 1px solid #e2e8f0;
+}
+
+.view-toggle-btn:hover {
+    background: #f1f5f9;
+    color: #334155;
+}
+
+.view-toggle-btn.active {
+    background: #3b82f6;
+    color: #ffffff;
+}
+
 /* New Search Input styling system layout rules */
 .search-bar {
     width: 240px;
@@ -286,7 +326,79 @@ h1 {
     color: #ffffff; 
 }
 
-.empty { 
+/* Grid layout: overrides the flex column list with a responsive thumbnail grid */
+.file-list.grid-view {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    align-content: flex-start;
+    gap: 16px;
+}
+
+.grid-item {
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px;
+    transition: border-color 0.15s;
+}
+
+.grid-item:hover {
+    border-color: #cbd5e1;
+}
+
+.grid-thumb-wrapper {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+}
+
+.grid-thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    cursor: pointer;
+}
+
+.grid-thumb-icon {
+    font-size: 2.5rem;
+    color: #94a3b8;
+}
+
+.grid-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 8px;
+    min-width: 0;
+    width: 100%;
+}
+
+.grid-name {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #334155;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.grid-actions {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+}
+
+.empty {
     font-size: 0.875rem; 
     color: #94a3b8; 
     text-align: center; 
@@ -379,5 +491,7 @@ h1 {
     .pane-left { width: 100%; border-right: none; border-bottom: 1px solid #e2e8f0; }
     .upload-card { height: 160px; padding: 20px 0; }
     .pane-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .pane-header-right { width: 100%; }
     .search-bar { width: 100%; }
+    .file-list.grid-view { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
 }

@@ -36,8 +36,16 @@
 			<!-- Header layout container including section text label and input element mapping -->
 			<div class="pane-header">
 				<div class="section-lbl">Available Files</div>
-				<input type="text" id="searchBar" class="search-bar" placeholder="Search local files..."
-					oninput="filterFiles()">
+				<div class="pane-header-right">
+					<input type="text" id="searchBar" class="search-bar" placeholder="Search local files..."
+						oninput="filterFiles()">
+					<div class="view-toggle" id="viewToggle">
+						<button type="button" id="listViewBtn" class="view-toggle-btn" title="List view"
+							onclick="setViewMode('list')">☰</button>
+						<button type="button" id="gridViewBtn" class="view-toggle-btn" title="Grid view"
+							onclick="setViewMode('grid')">▦</button>
+					</div>
+				</div>
 			</div>
 			<div class="file-list" id="fileContainer"></div>
 		</div>
@@ -51,6 +59,8 @@
 	<script>
 		// Global variables state storage layout tracker
 		let allFiles = [];
+		let viewMode = 'list';
+		try { viewMode = localStorage.getItem('viewMode') || 'list'; } catch { }
 
 		function formatBytes(bytes, decimals = 2) {
 			if (bytes === undefined || bytes === null || isNaN(bytes)) return '';
@@ -102,6 +112,62 @@
 			return 'other';
 		}
 
+		// Builds the thumbnail/icon markup shared by both the list and grid item templates
+		function getMediaThumbHtml(file, encodedName, thumbClass, iconClass) {
+			const kind = getFileKind(file.name);
+			if (kind === 'image') {
+				return `<img class="${thumbClass}" src="/${encodedName}" alt="" loading="lazy" onclick="event.stopPropagation(); openPreview('${encodedName}', 'image')">`;
+			}
+			if (kind === 'video') {
+				return `<video class="${thumbClass}" src="/${encodedName}" muted preload="metadata" onclick="event.stopPropagation(); openPreview('${encodedName}', 'video')"></video>`;
+			}
+			return `<span class="${iconClass}">📄</span>`;
+		}
+
+		function renderListItem(file) {
+			const sizeStr = file.size !== null && file.size !== undefined
+				? `<span class="file-size">${formatBytes(file.size)}</span>`
+				: '';
+			const encodedName = encodeURIComponent(file.name);
+			const iconHtml = getMediaThumbHtml(file, encodedName, 'file-thumb', 'file-icon');
+
+			return `
+                <div class="file-item" data-name="${file.name.toLowerCase()}">
+                    <div class="file-name-wrapper">
+                        ${iconHtml}
+                        <span class="file-name" title="${file.name}">${file.name}</span>
+                        ${sizeStr}
+                    </div>
+                    <div class="actions-wrapper">
+                        <a class="dl-link" href="/${encodedName}" download>⬇️</a>
+                        <button class="btn-delete" onclick="deleteFile('${encodedName}')">❌</button>
+                    </div>
+                </div>
+            `;
+		}
+
+		function renderGridItem(file) {
+			const sizeStr = file.size !== null && file.size !== undefined
+				? `<span class="file-size">${formatBytes(file.size)}</span>`
+				: '';
+			const encodedName = encodeURIComponent(file.name);
+			const mediaHtml = getMediaThumbHtml(file, encodedName, 'grid-thumb', 'grid-thumb-icon');
+
+			return `
+                <div class="grid-item" data-name="${file.name.toLowerCase()}">
+                    <div class="grid-thumb-wrapper">${mediaHtml}</div>
+                    <div class="grid-info">
+                        <span class="grid-name" title="${file.name}">${file.name}</span>
+                        ${sizeStr}
+                    </div>
+                    <div class="grid-actions">
+                        <a class="dl-link" href="/${encodedName}" download>⬇️</a>
+                        <button class="btn-delete" onclick="deleteFile('${encodedName}')">❌</button>
+                    </div>
+                </div>
+            `;
+		}
+
 		// Dedicated helper module function logic to print list elements onto UI structure
 		function renderFileDOMList(filesArray) {
 			const container = document.getElementById('fileContainer');
@@ -112,37 +178,22 @@
 				return;
 			}
 
-			container.innerHTML = filesArray.map(file => {
-				const sizeStr = file.size !== null && file.size !== undefined
-					? `<span class="file-size">${formatBytes(file.size)}</span>`
-					: '';
+			container.innerHTML = filesArray
+				.map(file => viewMode === 'grid' ? renderGridItem(file) : renderListItem(file))
+				.join('');
+		}
 
-				const encodedName = encodeURIComponent(file.name);
-				const kind = getFileKind(file.name);
+		function setViewMode(mode) {
+			viewMode = mode;
+			try { localStorage.setItem('viewMode', mode); } catch { }
 
-				let iconHtml;
-				if (kind === 'image') {
-					iconHtml = `<img class="file-thumb" src="/${encodedName}" alt="" loading="lazy" onclick="event.stopPropagation(); openPreview('${encodedName}', 'image')">`;
-				} else if (kind === 'video') {
-					iconHtml = `<video class="file-thumb" src="/${encodedName}" muted preload="metadata" onclick="event.stopPropagation(); openPreview('${encodedName}', 'video')"></video>`;
-				} else {
-					iconHtml = `<span class="file-icon">📄</span>`;
-				}
+			const container = document.getElementById('fileContainer');
+			if (container) container.classList.toggle('grid-view', mode === 'grid');
 
-				return `
-                    <div class="file-item" data-name="${file.name.toLowerCase()}">
-                        <div class="file-name-wrapper">
-                            ${iconHtml}
-                            <span class="file-name" title="${file.name}">${file.name}</span>
-                            ${sizeStr}
-                        </div>
-                        <div class="actions-wrapper">
-                            <a class="dl-link" href="/${encodedName}" download>⬇️</a>
-                            <button class="btn-delete" onclick="deleteFile('${encodedName}')">❌</button>
-                        </div>
-                    </div>
-                `;
-			}).join('');
+			document.getElementById('listViewBtn')?.classList.toggle('active', mode === 'list');
+			document.getElementById('gridViewBtn')?.classList.toggle('active', mode === 'grid');
+
+			filterFiles();
 		}
 
 		// Opens a fullscreen lightbox preview for image/video thumbnails
@@ -324,6 +375,7 @@
 		}
 
 		document.addEventListener('DOMContentLoaded', () => {
+			setViewMode(viewMode);
 			loadFiles();
 			loadStorage();
 		});

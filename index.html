@@ -288,6 +288,7 @@
 						}
 					});
 					successCount++;
+					loadFiles(); // Reflect this file in the list right away instead of waiting for the whole batch
 				} catch (err) {
 					failedNames.push(file.name);
 				}

@@ -2,7 +2,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const port = 8080;
+const port = 8123;
 const host = '0.0.0.0';
 
 const rootPath = path.join(__dirname, 'files');
@@ -13,7 +13,7 @@ if (!fs.existsSync(rootPath)) {
 }
 
 const server = http.createServer((req, res) => {
-	const parsedUrl = new URL(req.url, 'http://localhost');
+	const parsedUrl = new URL(req.url, `http://${host}:${port}`);
 	const pathname = parsedUrl.pathname;
 
 	// Handle File Upload

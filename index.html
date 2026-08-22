@@ -25,7 +25,7 @@
 		<div class="pane pane-left">
 			<div class="section-lbl">Upload File</div>
 			<div class="upload-card">
-				<input type="file" onchange="uploadFile(this.files)">
+				<input type="file" multiple onchange="uploadFile(this.files)">
 				<div class="upload-icon">📤</div>
 				<div class="upload-lbl" id="statusMsg">Drag and drop file here<br>or click to look through files</div>
 				<div class="progress" id="progressBar"></div>
@@ -41,6 +41,11 @@
 			</div>
 			<div class="file-list" id="fileContainer"></div>
 		</div>
+	</div>
+
+	<div class="preview-overlay" id="previewOverlay" onclick="closePreview()">
+		<button class="preview-close" onclick="closePreview()">✕</button>
+		<div class="preview-content" id="previewContent" onclick="event.stopPropagation()"></div>
 	</div>
 
 	<script>
@@ -87,6 +92,16 @@
 			}
 		}
 
+		const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'avif'];
+		const VIDEO_EXTENSIONS = ['mp4', 'webm', 'ogg', 'ogv', 'mov', 'mkv', 'avi', 'm4v'];
+
+		function getFileKind(name) {
+			const ext = name.split('.').pop().toLowerCase();
+			if (IMAGE_EXTENSIONS.includes(ext)) return 'image';
+			if (VIDEO_EXTENSIONS.includes(ext)) return 'video';
+			return 'other';
+		}
+
 		// Dedicated helper module function logic to print list elements onto UI structure
 		function renderFileDOMList(filesArray) {
 			const container = document.getElementById('fileContainer');
@@ -102,21 +117,61 @@
 					? `<span class="file-size">${formatBytes(file.size)}</span>`
 					: '';
 
+				const encodedName = encodeURIComponent(file.name);
+				const kind = getFileKind(file.name);
+
+				let iconHtml;
+				if (kind === 'image') {
+					iconHtml = `<img class="file-thumb" src="/${encodedName}" alt="" loading="lazy" onclick="event.stopPropagation(); openPreview('${encodedName}', 'image')">`;
+				} else if (kind === 'video') {
+					iconHtml = `<video class="file-thumb" src="/${encodedName}" muted preload="metadata" onclick="event.stopPropagation(); openPreview('${encodedName}', 'video')"></video>`;
+				} else {
+					iconHtml = `<span class="file-icon">📄</span>`;
+				}
+
 				return `
                     <div class="file-item" data-name="${file.name.toLowerCase()}">
                         <div class="file-name-wrapper">
-                            <span class="file-icon">📄</span>
+                            ${iconHtml}
                             <span class="file-name" title="${file.name}">${file.name}</span>
                             ${sizeStr}
                         </div>
                         <div class="actions-wrapper">
-                            <a class="dl-link" href="/${encodeURIComponent(file.name)}" download>⬇️</a>
-                            <button class="btn-delete" onclick="deleteFile('${encodeURIComponent(file.name)}')">❌</button>
+                            <a class="dl-link" href="/${encodedName}" download>⬇️</a>
+                            <button class="btn-delete" onclick="deleteFile('${encodedName}')">❌</button>
                         </div>
                     </div>
                 `;
 			}).join('');
 		}
+
+		// Opens a fullscreen lightbox preview for image/video thumbnails
+		function openPreview(encodedName, kind) {
+			const overlay = document.getElementById('previewOverlay');
+			const content = document.getElementById('previewContent');
+			if (!overlay || !content) return;
+
+			const url = `/${encodedName}`;
+			if (kind === 'video') {
+				content.innerHTML = `<video src="${url}" controls autoplay></video>`;
+			} else {
+				content.innerHTML = `<img src="${url}" alt="">`;
+			}
+			overlay.classList.add('active');
+		}
+
+		function closePreview() {
+			const overlay = document.getElementById('previewOverlay');
+			const content = document.getElementById('previewContent');
+			if (!overlay || !content) return;
+
+			overlay.classList.remove('active');
+			content.innerHTML = ''; // Stop any playing video by clearing its element
+		}
+
+		document.addEventListener('keydown', (e) => {
+			if (e.key === 'Escape') closePreview();
+		});
 
 		// New feature method operation to execute query structural parsing filtering logic
 		function filterFiles() {
@@ -152,63 +207,87 @@
 
 		function uploadFile(files) {
 			if (!files || files.length === 0) return;
+			uploadFiles(Array.from(files));
+		}
 
+		// Uploads each selected file sequentially, since the server accepts one file per request
+		async function uploadFiles(files) {
 			const msg = document.getElementById('statusMsg');
 			const progress = document.getElementById('progressBar');
+			const input = document.querySelector('.upload-card input[type="file"]');
+			const multiple = files.length > 1;
 
-			if (files.length > 1) {
-				if (msg) msg.innerHTML = '<span style="color: #ef4444; font-weight: 600;">Please upload one file at a time</span>';
-				setTimeout(() => {
-					if (msg) msg.innerHTML = 'Drag and drop file here<br>or click to look through files';
-				}, 2000);
-				return;
-			}
+			let successCount = 0;
+			const failedNames = [];
 
-			const file = files[0];
+			for (let i = 0; i < files.length; i++) {
+				const file = files[i];
+				const prefix = multiple ? `File ${i + 1} of ${files.length} — ` : '';
 
-			if (msg) {
-				msg.innerHTML = `Starting upload...<br><small style="color: #94a3b8;">${formatBytes(file.size)}</small>`;
-			}
-
-			const xhr = new XMLHttpRequest();
-			xhr.open('POST', '/upload', true);
-
-			xhr.setRequestHeader('X-File-Name', encodeURIComponent(file.name));
-
-			xhr.upload.onprogress = (e) => {
-				if (e.lengthComputable && progress && msg) {
-					const percentage = Math.round((e.loaded / e.total) * 100);
-					progress.style.width = percentage + '%';
-					msg.innerHTML = `Uploading: ${percentage}%<br><small style="color: #94a3b8;">${formatBytes(e.loaded)} / ${formatBytes(e.total)}</small>`;
+				if (msg) {
+					msg.innerHTML = `${prefix}Starting upload...<br><small style="color: #94a3b8;">${file.name} (${formatBytes(file.size)})</small>`;
 				}
-			};
-
-			xhr.onload = () => {
-				if (xhr.status === 200) {
-					if (msg) msg.innerHTML = '<span style="color: #10b981; font-weight: 600;">Success!</span>';
-					if (progress) progress.style.width = '100%';
-					setTimeout(() => {
-						if (progress) progress.style.width = '0%';
-						if (msg) msg.innerHTML = 'Drag and drop file here<br>or click to look through files';
-						// Clear filter values upon uploading item instances to show newly added records
-						document.getElementById('searchBar').value = '';
-						loadFiles();
-					}, 1000);
-				} else {
-					const detail = xhr.responseText ? xhr.responseText : 'Error uploading file';
-					if (msg) msg.innerHTML = `<span style="color: #ef4444; font-weight: 600;">${detail}</span>`;
-					if (progress) progress.style.width = '0%';
-					loadFiles();
-				}
-			};
-
-			xhr.onerror = () => {
-				if (msg) msg.innerHTML = '<span style="color: #ef4444; font-weight: 600;">Network error occurred</span>';
 				if (progress) progress.style.width = '0%';
-				loadFiles();
-			};
 
-			xhr.send(file);
+				try {
+					await uploadSingleFile(file, (percentage, loaded, total) => {
+						if (progress) progress.style.width = percentage + '%';
+						if (msg) {
+							msg.innerHTML = `${prefix}Uploading: ${percentage}%<br><small style="color: #94a3b8;">${file.name} — ${formatBytes(loaded)} / ${formatBytes(total)}</small>`;
+						}
+					});
+					successCount++;
+				} catch (err) {
+					failedNames.push(file.name);
+				}
+			}
+
+			if (input) input.value = '';
+
+			if (failedNames.length === 0) {
+				if (msg) msg.innerHTML = `<span style="color: #10b981; font-weight: 600;">${successCount === 1 ? 'Success!' : `${successCount} files uploaded successfully!`}</span>`;
+				if (progress) progress.style.width = '100%';
+			} else {
+				const summary = successCount > 0 ? `${successCount} succeeded, ${failedNames.length} failed` : `${failedNames.length} failed`;
+				if (msg) msg.innerHTML = `<span style="color: #ef4444; font-weight: 600;">${summary}: ${failedNames.join(', ')}</span>`;
+				if (progress) progress.style.width = '0%';
+			}
+
+			setTimeout(() => {
+				if (progress) progress.style.width = '0%';
+				if (msg) msg.innerHTML = 'Drag and drop file here<br>or click to look through files';
+				// Clear filter values upon uploading item instances to show newly added records
+				document.getElementById('searchBar').value = '';
+				loadFiles();
+			}, failedNames.length === 0 ? 1000 : 3000);
+		}
+
+		function uploadSingleFile(file, onProgress) {
+			return new Promise((resolve, reject) => {
+				const xhr = new XMLHttpRequest();
+				xhr.open('POST', '/upload', true);
+
+				xhr.setRequestHeader('X-File-Name', encodeURIComponent(file.name));
+
+				xhr.upload.onprogress = (e) => {
+					if (e.lengthComputable) {
+						const percentage = Math.round((e.loaded / e.total) * 100);
+						onProgress(percentage, e.loaded, e.total);
+					}
+				};
+
+				xhr.onload = () => {
+					if (xhr.status === 200) {
+						resolve();
+					} else {
+						reject(new Error(xhr.responseText || 'Error uploading file'));
+					}
+				};
+
+				xhr.onerror = () => reject(new Error('Network error occurred'));
+
+				xhr.send(file);
+			});
 		}
 
 		async function loadStorage() {

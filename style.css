@@ -204,10 +204,26 @@ h1 {
     margin-right: 16px; 
 }
 
-.file-icon { 
-    margin-right: 8px; 
-    font-size: 1.1rem; 
-    flex-shrink: 0; 
+.file-icon {
+    margin-right: 8px;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.file-thumb {
+    width: 32px;
+    height: 32px;
+    margin-right: 8px;
+    border-radius: 4px;
+    object-fit: cover;
+    flex-shrink: 0;
+    cursor: pointer;
+    background: #f1f5f9;
+    transition: transform 0.15s ease;
+}
+
+.file-thumb:hover {
+    transform: scale(1.08);
 }
 
 .file-name { 
@@ -302,6 +318,56 @@ h1 {
     background: #3b82f6;
     border-radius: 3px;
     transition: width 0.3s ease, background 0.3s ease;
+}
+
+/* Fullscreen lightbox for previewing images/videos at full size */
+.preview-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.9);
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 40px;
+}
+
+.preview-overlay.active {
+    display: flex;
+}
+
+.preview-content {
+    max-width: 100%;
+    max-height: 100%;
+    display: flex;
+}
+
+.preview-content img,
+.preview-content video {
+    max-width: 100%;
+    max-height: calc(100vh - 80px);
+    border-radius: 8px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.preview-close {
+    position: fixed;
+    top: 20px;
+    right: 28px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    border: none;
+    font-size: 1.25rem;
+    line-height: 1;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.preview-close:hover {
+    background: rgba(255, 255, 255, 0.25);
 }
 
 @media (max-width: 768px) {

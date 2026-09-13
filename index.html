@@ -104,12 +104,22 @@
 
 		const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'avif'];
 		const VIDEO_EXTENSIONS = ['mp4', 'webm', 'ogg', 'ogv', 'mov', 'mkv', 'avi', 'm4v'];
+		const SOFTWARE_EXTENSIONS = ['exe', 'msi', 'msix', 'appx', 'com', 'scr', 'cpl'];
 
 		function getFileKind(name) {
 			const ext = name.split('.').pop().toLowerCase();
 			if (IMAGE_EXTENSIONS.includes(ext)) return 'image';
 			if (VIDEO_EXTENSIONS.includes(ext)) return 'video';
+			if (SOFTWARE_EXTENSIONS.includes(ext)) return 'software';
 			return 'other';
+		}
+
+		// Swaps a broken app-icon <img> (extraction failed/unavailable) back to the generic file icon
+		function handleIconError(imgEl, iconClass) {
+			const span = document.createElement('span');
+			span.className = iconClass;
+			span.textContent = '📄';
+			imgEl.replaceWith(span);
 		}
 
 		// Builds the thumbnail/icon markup shared by both the list and grid item templates
@@ -120,6 +130,9 @@
 			}
 			if (kind === 'video') {
 				return `<video class="${thumbClass}" src="/${encodedName}" muted preload="metadata" onclick="event.stopPropagation(); openPreview('${encodedName}', 'video')"></video>`;
+			}
+			if (kind === 'software') {
+				return `<img class="${thumbClass}" src="/api/icon?file=${encodedName}" alt="" loading="lazy" onerror="handleIconError(this, '${iconClass}')">`;
 			}
 			return `<span class="${iconClass}">📄</span>`;
 		}

@@ -7,6 +7,49 @@ const host = '0.0.0.0';
 
 const rootPath = path.join(__dirname, 'files');
 
+// Extensions whose files carry their own embedded application/software icon
+const SOFTWARE_EXTENSIONS = ['exe', 'msi', 'msix', 'appx', 'com', 'scr', 'cpl'];
+
+// pe-library/resedit/icojs are ESM-only; load them lazily via dynamic import from this CJS file
+let iconModulesPromise = null;
+function loadIconModules() {
+	if (!iconModulesPromise) {
+		iconModulesPromise = Promise.all([import('pe-library'), import('resedit'), import('icojs')]);
+	}
+	return iconModulesPromise;
+}
+
+// Extracts the icon embedded in a Windows PE executable's resource section, as a PNG buffer.
+// Pure JS, so it works regardless of the OS the server runs on. Naturally fails (and the caller
+// falls back to the generic file icon) for non-PE files, or files without an icon resource.
+async function extractFileIcon(filePath) {
+	const [{ NtExecutable, NtExecutableResource }, { Resource, Data }, { decodeIco }] = await loadIconModules();
+
+	const fileData = fs.readFileSync(filePath);
+	const exe = NtExecutable.from(fileData, { ignoreCert: true });
+	const res = NtExecutableResource.from(exe);
+
+	const groups = Resource.IconGroupEntry.fromEntries(res.entries);
+	if (groups.length === 0) throw new Error('No icon resource in file');
+
+	const group = groups[0];
+	const items = group.getIconItemsFromEntries(res.entries);
+
+	const iconFile = new Data.IconFile();
+	iconFile.icons = group.icons.map((meta, i) => ({
+		width: meta.width,
+		height: meta.height,
+		colors: meta.colors,
+		planes: meta.planes,
+		bitCount: meta.bitCount,
+		data: items[i],
+	}));
+
+	const images = await decodeIco(iconFile.generate(), 'image/png');
+	images.sort((a, b) => b.width - a.width);
+	return Buffer.from(images[0].buffer);
+}
+
 if (!fs.existsSync(rootPath)) {
 	fs.mkdirSync(rootPath);
 	fs.writeFileSync(path.join(rootPath, 'hello.txt'), 'Server is active!');
@@ -69,6 +112,36 @@ const server = http.createServer((req, res) => {
 			res.writeHead(500, { 'Content-Type': 'application/json' });
 			return res.end(JSON.stringify({ error: 'Failed to read disk storage stats' }));
 		}
+	}
+
+	// Handle Fetching an Executable's Embedded App/Software Icon (API Endpoint)
+	if (req.method === 'GET' && pathname === '/api/icon') {
+		const fileName = parsedUrl.searchParams.get('file');
+		if (!fileName) {
+			res.writeHead(400, { 'Content-Type': 'text/plain' });
+			return res.end('Missing file query parameter target');
+		}
+
+		const safeSuffix = path.normalize(fileName).replace(/^(\.\.(\/|\\|$))+/, '');
+		const filePath = path.join(rootPath, safeSuffix);
+		const ext = path.extname(filePath).slice(1).toLowerCase();
+
+		if (!SOFTWARE_EXTENSIONS.includes(ext) || !fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+			res.writeHead(404, { 'Content-Type': 'text/plain' });
+			return res.end('Icon not available');
+		}
+
+		extractFileIcon(filePath)
+			.then((pngBuffer) => {
+				res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=86400' });
+				res.end(pngBuffer);
+			})
+			.catch((err) => {
+				console.error('Icon extraction failed', err);
+				res.writeHead(404, { 'Content-Type': 'text/plain' });
+				res.end('Icon not available');
+			});
+		return;
 	}
 
 	// Handle Fetching Current Files with Sizes (API Endpoint)
@@ -207,3 +280,23 @@ server.listen(port, host, () => {
 		}
 	}
 });
+
+// Ensure the listening socket is actually released on Ctrl+C / window close,
+// instead of leaving node.exe orphaned in the background still holding the port
+function shutdown() {
+	console.log('Shutting down, releasing port...');
+	server.close(() => process.exit(0));
+	server.closeAllConnections?.();
+	setTimeout(() => process.exit(0), 2000).unref();
+}
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
+process.on('SIGHUP', shutdown);
+process.on('SIGBREAK', shutdown);
+
+if (process.platform === 'win32') {
+	require('readline')
+		.createInterface({ input: process.stdin, output: process.stdout })
+		.on('SIGINT', () => process.emit('SIGINT'));
+}
